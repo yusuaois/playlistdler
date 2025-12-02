@@ -6,10 +6,7 @@ import uuid
 import shutil
 import threading
 import time
-import re  # Add regex for capturing album/playlist name
-# TODO 下载前首先检查目录是否存在：
-# TODO 若存在：则在下载时获取歌曲名称进行比对，若存在且大小一致则跳过下载，否则重新下载
-# TODO 若不存在：则创建目录并下载
+import re
 
 app = Flask(__name__, static_folder="web")
 BASE_DOWNLOAD_FOLDER = "/app/downloads"
@@ -32,7 +29,6 @@ ignore_keywords = [
 sessions = {}
 
 os.makedirs(BASE_DOWNLOAD_FOLDER, exist_ok=True)
-
 
 @app.route("/")
 def serve_index():
@@ -65,11 +61,8 @@ def is_logged_in():
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    session_id = request.cookies.get("session")
-    if session_id in sessions:
-        del sessions[session_id]
     response = jsonify({"success": True})
-    response.delete_cookie("session")
+    response.delete_cookie("session")  # Remove session cookie
     return response
 
 
@@ -153,7 +146,7 @@ def generate(is_admin, command, temp_download_folder, session_id):
 
         # beautiful output
         display_line = clean_line
-
+        
         if "ERROR:" in clean_line.upper() or "WARNING:" in clean_line.upper():
             display_line = f"⚠️ ERROR/WARNING: {clean_line}"
         elif "Destination:" in clean_line:
@@ -207,60 +200,38 @@ def generate(is_admin, command, temp_download_folder, session_id):
         ]
 
         if not valid_audio_files:
-            yield "data: ❌ Error: No valid audio files found. Please check the link.\n\n"
+            yield f"data: ❌ Error: No valid audio files found. Please check the link.\n\n"
             return
 
         # ✅ ADMIN HANDLING
         if is_admin:
-            try:
-                if album_name:
-                    final_folder_name = sanitize_filename(album_name)
-                else:
-                    import datetime
+            if album_name:
+                final_folder_name = sanitize_filename(album_name)
+            else:
+                final_folder_name = f"Unknown_Playlist_{session_id[:8]}"
 
-                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-                    final_folder_name = f"Unknown_Playlist_{session_id[:8]}_{timestamp}"
+            target_directory = os.path.join(ADMIN_DOWNLOAD_PATH, final_folder_name)
+            os.makedirs(target_directory, exist_ok=True)
 
-                target_directory = os.path.join(ADMIN_DOWNLOAD_PATH, final_folder_name)
-                os.makedirs(target_directory, exist_ok=True)
+            yield f"data: 🚚 Moving files to folder: {final_folder_name}...\n\n"
 
-                yield f"data: 🚚 Moving {len(valid_audio_files)} files to folder: {final_folder_name}...\n\n"
+            for file_path in valid_audio_files:
+                filename = os.path.basename(file_path)
+                target_path = os.path.join(target_directory, filename)
 
-                # Move files to target directory
-                moved_count = 0
-                for file_path in valid_audio_files:
-                    rel_path = os.path.relpath(file_path, temp_download_folder)
-                    target_path = os.path.join(target_directory, rel_path)
+                if os.path.exists(target_path):
+                    base, ext = os.path.splitext(filename)
+                    filename = f"{base}_{uuid.uuid4().hex[:4]}{ext}"
+                    target_path = os.path.join(target_directory, filename)
 
-                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                try:
+                    shutil.move(file_path, target_path)
+                except Exception as move_error:
+                    print(f"❌ Failed to move {file_path}: {move_error}")
 
-                    if os.path.exists(target_path):
-                        directory, filename = os.path.split(target_path)
-                        name, ext = os.path.splitext(filename)
-                        counter = 1
-                        while os.path.exists(target_path):
-                            new_filename = f"{name}_{counter}{ext}"
-                            target_path = os.path.join(directory, new_filename)
-                            counter += 1
-
-                    try:
-                        shutil.move(file_path, target_path)
-                        moved_count += 1
-                        # Progress update
-                        yield f"data: 📦 Moved file {moved_count}/{len(valid_audio_files)}\n\n"
-                    except Exception as move_error:
-                        yield f"data: ⚠️ Failed to move {os.path.basename(file_path)}: {move_error}\n\n"
-                        shutil.copy2(file_path, target_path)
-                        yield f"data: 📋 Copied instead of moved: {os.path.basename(file_path)}\n\n"
-
-                yield f"data: ✅ Successfully moved {moved_count} files to: {target_directory}\n\n"
-                threading.Thread(
-                    target=delayed_delete, args=(temp_download_folder,)
-                ).start()
-            except Exception as e:
-                yield f"data: ❌ Error in admin processing: {str(e)}\n\n"
-            finally:
-                return  # ✅ Don’t try to serve/move anything else
+            shutil.rmtree(temp_download_folder, ignore_errors=True)
+            yield "data: ✅ Download completed. Files saved to server directory.\n\n"
+            return  # ✅ Don’t try to serve/move anything else
 
         # ✅ PUBLIC USER HANDLING
         if len(valid_audio_files) > 1:
@@ -283,6 +254,7 @@ def generate(is_admin, command, temp_download_folder, session_id):
             )
             encoded_path = quote(relative_path)
             yield f"data: ✅ DOWNLOAD: {session_id}/{encoded_path}\n\n"
+
             threading.Thread(
                 target=delayed_delete, args=(temp_download_folder,)
             ).start()
