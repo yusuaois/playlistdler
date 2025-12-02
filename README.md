@@ -23,19 +23,18 @@ A self-hosted web application for downloading songs, albums, or playlists from S
 ```yaml
 services:
   playlistdl:
-    image: tanner23456/playlistdl:v2
-    container_name: playlistdl
-    ports:
-      - "4827:5000"
-    environment:
-      #Direct Server Download
-      - ADMIN_USERNAME= #Insert unique username here!
-      - ADMIN_PASSWORD= #Insert unique password here!
-
-      - AUDIO_DOWNLOAD_PATH=${AUDIO_DOWNLOAD_PATH}  # Use the env variable
-      - CLEANUP_INTERVAL=300  # Optional
+    image: ghcr.io/yusuaois/playlistdl:latest
+    container_name: playlistdler
+    restart: unless-stopped
     volumes:
-      - ${AUDIO_DOWNLOAD_PATH}:${AUDIO_DOWNLOAD_PATH}  # Reference env variable here as well
+      - /volume1/music:/downloads  # Replace with your desired download path
+    ports:
+      - "5045:5000"
+    environment:
+      ADMIN_USERNAME: #Your Username
+      ADMIN_PASSWORD: #Your Password
+      AUDIO_DOWNLOAD_PATH: /downloads  # Replace with your desired download path
+      CLEANUP_INTERVAL: 300
 
 
 ```
