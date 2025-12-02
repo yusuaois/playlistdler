@@ -56,9 +56,9 @@ async function download() {
         progressData.curItem = log;
         updateProgressDisplay();
       }
-    } else if (log.startsWith("DOWNLOAD:")) {
+    } else if (log.startsWith("✅ DOWNLOAD:")) {
       progressBar.value = 100;
-      const path = log.split("DOWNLOAD: ")[1].trim();
+      const path = log.split("✅ DOWNLOAD: ")[1].trim();
       console.log("Download path:", path);
 
       const downloadLink = document.createElement("a");
