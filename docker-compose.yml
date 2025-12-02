@@ -8,7 +8,7 @@ services:
     environment:
         #Direct Server Download
         - ADMIN_USERNAME=admin #Insert unique username here!
-        - ADMIN_PASSWORD=password #Insert unique password here!
+        - ADMIN_PASSWORD=admin123 #Insert unique password here!
       
       - AUDIO_DOWNLOAD_PATH=${AUDIO_DOWNLOAD_PATH}  # Use the env variable
       - CLEANUP_INTERVAL=300  # Optional
