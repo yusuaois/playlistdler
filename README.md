@@ -85,9 +85,3 @@ services:
 - **Permissions**: Ensure the `downloads` directory has the correct permissions for Docker to write files.
 - **Port Conflicts**: If port 5000 is in use, adjust the port mapping in the `docker-compose.yaml` file.
 
-## Support This Project
-
-If you like this project, consider supporting it with a donation!
-
-[![Donate via Stripe](https://img.shields.io/badge/Donate-Stripe-blue?style=flat&logo=stripe)](https://buy.stripe.com/6oEdU3dWS19C556dQQ)
-
