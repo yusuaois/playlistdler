@@ -23,7 +23,7 @@ A self-hosted web application for downloading songs, albums, or playlists from S
 ```yaml
 services:
   playlistdl:
-    image: ghcr.io/yusuaois/playlistdl:latest
+    image: ghcr.io/yusuaois/playlistdler:latest
     container_name: playlistdler
     restart: unless-stopped
     volumes:
