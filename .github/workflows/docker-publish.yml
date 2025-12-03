@@ -4,17 +4,14 @@ on:
   push:
     tags:
       - "v*.*.*"
-    branches:
-      - main
-      - master
-  pull_request:
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 env:
-  IMAGE_NAME: playlistdl
+  IMAGE_NAME: playlistdler
 
 jobs:
   build-and-push:
